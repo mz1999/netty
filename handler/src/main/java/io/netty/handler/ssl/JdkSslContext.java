@@ -56,7 +56,7 @@ public class JdkSslContext extends SslContext {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(JdkSslContext.class);
 
     static final String PROTOCOL = "TLS";
-    static final String[] PROTOCOLS;
+    static String[] PROTOCOLS;
     static final List<String> DEFAULT_CIPHERS;
     static final Set<String> SUPPORTED_CIPHERS;
 
@@ -137,7 +137,7 @@ public class JdkSslContext extends SslContext {
         }
     }
 
-    private final String[] cipherSuites;
+    private String[] cipherSuites;
     private final List<String> unmodifiableCipherSuites;
     private final JdkApplicationProtocolNegotiator apn;
     private final ClientAuth clientAuth;
@@ -183,6 +183,11 @@ public class JdkSslContext extends SslContext {
         unmodifiableCipherSuites = Collections.unmodifiableList(Arrays.asList(cipherSuites));
         this.sslContext = checkNotNull(sslContext, "sslContext");
         this.isClient = isClient;
+
+        if (isGmEnabled()) {
+            PROTOCOLS = new String[] { "GMSSLv1.1" };
+            this.cipherSuites = new String[] { "ECC_SM4_CBC_SM3" };
+        }
     }
 
     /**
@@ -235,8 +240,6 @@ public class JdkSslContext extends SslContext {
     }
 
     private SSLEngine configureAndWrapEngine(SSLEngine engine) {
-        engine.setEnabledCipherSuites(cipherSuites);
-        engine.setEnabledProtocols(PROTOCOLS);
         engine.setUseClientMode(isClient());
         if (isServer()) {
             switch (clientAuth) {
@@ -248,6 +251,8 @@ public class JdkSslContext extends SslContext {
                     break;
             }
         }
+        engine.setEnabledCipherSuites(cipherSuites);
+        engine.setEnabledProtocols(PROTOCOLS);
         return apn.wrapperFactory().wrapSslEngine(engine, apn, isServer());
     }
 

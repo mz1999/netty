@@ -246,7 +246,12 @@ public final class JdkSslServerContext extends JdkSslContext {
             }
 
             // Initialize the SSLContext to work with our key managers.
-            SSLContext ctx = SSLContext.getInstance(PROTOCOL);
+            SSLContext ctx;
+            if (isGmEnabled()) {
+                ctx = SSLContext.getInstance(PROTOCOL, "GMJSSE");
+            } else {
+                ctx = SSLContext.getInstance(PROTOCOL);
+            }
             ctx.init(keyManagerFactory.getKeyManagers(),
                      trustManagerFactory == null ? null : trustManagerFactory.getTrustManagers(),
                      null);

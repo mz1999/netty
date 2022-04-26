@@ -16,15 +16,19 @@
 
 package io.netty.handler.ssl;
 
-import static io.netty.util.internal.ObjectUtil.checkNotNull;
+import io.netty.util.internal.StringUtil;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
+import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+
+import static io.netty.util.internal.ObjectUtil.*;
 
 /**
  * Builder for configuring a new SslContext for creation.
@@ -121,6 +125,10 @@ public final class SslContextBuilder {
      */
     public static SslContextBuilder forServer(KeyManagerFactory keyManagerFactory) {
         return new SslContextBuilder(true).keyManager(keyManagerFactory);
+    }
+
+    public static SslContextBuilder forServerGmssl(String keyStorePath, String keyStorePassword) {
+        return new SslContextBuilder(true).keyManagerGmssl(keyStorePath, keyStorePassword);
     }
 
     private final boolean forServer;
@@ -327,6 +335,27 @@ public final class SslContextBuilder {
         key = null;
         keyPassword = null;
         this.keyManagerFactory = keyManagerFactory;
+        return this;
+    }
+
+    public SslContextBuilder keyManagerGmssl(String keyStorePath, String keyStorePassword) {
+
+        if (!StringUtil.isNullOrEmpty(keyStorePath)) {
+            try {
+                KeyManagerFactory keyManagerFactory =
+                        KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                KeyStore keyStore = KeyStore.getInstance("PKCS12", "GMJSSE");
+
+                char[] passwordChars = keyStorePassword.toCharArray();
+                FileInputStream inputStream = new FileInputStream(keyStorePath);
+                keyStore.load(inputStream, passwordChars);
+                keyManagerFactory.init(keyStore, passwordChars);
+
+                this.keyManagerFactory = keyManagerFactory;
+            } catch (Exception e) {
+                throw new IllegalStateException("init keyManagerFactory failed.", e);
+            }
+        }
         return this;
     }
 

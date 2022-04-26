@@ -274,7 +274,12 @@ public final class JdkSslClientContext extends JdkSslContext {
             if (keyCertChain != null) {
                 keyManagerFactory = buildKeyManagerFactory(keyCertChain, key, keyPassword, keyManagerFactory);
             }
-            SSLContext ctx = SSLContext.getInstance(PROTOCOL);
+            SSLContext ctx;
+            if (isGmEnabled()) {
+                ctx = SSLContext.getInstance(PROTOCOL, "GMJSSE");
+            } else {
+                ctx = SSLContext.getInstance(PROTOCOL);
+            }
             ctx.init(keyManagerFactory == null ? null : keyManagerFactory.getKeyManagers(),
                      trustManagerFactory == null ? null : trustManagerFactory.getTrustManagers(),
                      null);

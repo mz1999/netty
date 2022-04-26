@@ -51,6 +51,7 @@ import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.UnrecoverableKeyException;
@@ -986,7 +987,8 @@ public abstract class SslContext {
     @Deprecated
     protected static TrustManagerFactory buildTrustManagerFactory(
             File certChainFile, TrustManagerFactory trustManagerFactory)
-            throws NoSuchAlgorithmException, CertificateException, KeyStoreException, IOException {
+            throws NoSuchAlgorithmException, CertificateException, KeyStoreException, IOException,
+                   NoSuchProviderException {
         X509Certificate[] x509Certs = toX509Certificates(certChainFile);
 
         return buildTrustManagerFactory(x509Certs, trustManagerFactory);
@@ -1024,7 +1026,8 @@ public abstract class SslContext {
 
     static TrustManagerFactory buildTrustManagerFactory(
             X509Certificate[] certCollection, TrustManagerFactory trustManagerFactory)
-            throws NoSuchAlgorithmException, CertificateException, KeyStoreException, IOException {
+            throws NoSuchAlgorithmException, CertificateException, KeyStoreException, IOException,
+                   NoSuchProviderException {
         KeyStore ks = KeyStore.getInstance("JKS");
         ks.load(null, null);
 
@@ -1037,7 +1040,12 @@ public abstract class SslContext {
 
         // Set up trust manager factory to use our key store.
         if (trustManagerFactory == null) {
-            trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            if (isGmEnabled()) {
+                trustManagerFactory =
+                        TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm(), "GMJSSE");
+            } else {
+                trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            }
         }
         trustManagerFactory.init(ks);
 
@@ -1092,5 +1100,9 @@ public abstract class SslContext {
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         keyManagerFactory.init(null, null);
         return keyManagerFactory;
+    }
+
+    static boolean isGmEnabled() {
+        return Boolean.parseBoolean(System.getProperty("com.apusic.security.ssl.EnableGMTLS", "false"));
     }
 }
