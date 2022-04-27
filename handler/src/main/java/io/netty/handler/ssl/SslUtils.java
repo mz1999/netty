@@ -28,6 +28,11 @@ import io.netty.handler.codec.base64.Base64Dialect;
 final class SslUtils {
 
     /**
+     * GMSSL Protocol Version
+     */
+    static final int GMSSL_PROTOCOL_VERSION = 0x101;
+
+    /**
      * change cipher spec
      */
     public static final int SSL_CONTENT_TYPE_CHANGE_CIPHER_SPEC = 20;
@@ -87,8 +92,8 @@ final class SslUtils {
         if (tls) {
             // SSLv3 or TLS - Check ProtocolVersion
             int majorVersion = buffer.getUnsignedByte(offset + 1);
-            if (majorVersion == 3) {
-                // SSLv3 or TLS
+            if (majorVersion == 3 || buffer.getShort(offset + 1) == GMSSL_PROTOCOL_VERSION) {
+                // SSLv3 or TLS or GMSSLv1.0 or GMSSLv1.1
                 packetLength = buffer.getUnsignedShort(offset + 3) + SSL_RECORD_HEADER_LENGTH;
                 if (packetLength <= SSL_RECORD_HEADER_LENGTH) {
                     // Neither SSLv3 or TLSv1 (i.e. SSLv2 or bad data)
